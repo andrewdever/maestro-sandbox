@@ -12,7 +12,7 @@
  *   Gateway (control plane) → Sandbox (isolated container) →
  *   Policy Engine (Landlock + seccomp + netns) → Privacy Router
  *
- * Feature-flagged: must be explicitly enabled in maestro.config.ts.
+ * Feature-flagged: must be explicitly enabled in configuration.
  * Default Tier 3 remains Docker. Shadow mode recommended before graduation.
  *
  * References:
@@ -68,7 +68,7 @@ const MAX_IDLE_MEMORY_MB = 512;
  *   - process: capability restrictions, seccomp profile, PID limits
  *   - inference: Privacy Router config, model routing
  *
- * Generated from maestro.config.ts — never hand-authored.
+ * Generated from sandbox config — never hand-authored.
  */
 export interface OpenShellPolicy {
   filesystem: {

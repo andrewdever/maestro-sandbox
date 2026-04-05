@@ -98,10 +98,6 @@ Copy [`.env.example`](.env.example) to `.env`. Most features work without any en
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | No | OpenTelemetry audit span export |
 | `OTEL_SERVICE_NAME` | No | Service name for OTel spans |
 
-### Standalone vs. Monorepo
-
-Previously, sandbox configuration lived in `maestro.config.ts` inside the Maestro monorepo. The new standalone API (`createSecureSandbox`, `defineConfig`, `PRESETS`) replaces that. You no longer need `@maestro/spec` or the full monorepo to use the sandbox.
-
 ## Using the Defense Pipeline
 
 `createSecureSandbox()` wires up the defense pipeline automatically. Process input before executing code.

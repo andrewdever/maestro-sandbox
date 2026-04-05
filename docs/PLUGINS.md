@@ -75,8 +75,8 @@ npm install isolated-vm
 **Configuration:**
 
 ```typescript
-// maestro.config.ts
-sandbox: {
+// sandbox.config.ts
+const config = defineConfig({
   plugin: 'isolated-vm',
   limits: {
     memoryMB: 128,       // Enforced via V8 heap cap
@@ -538,7 +538,7 @@ Docker (T3) --> E2B (T3) --> Landlock (T2) --> Anthropic SR (T2) --> isolated-vm
 
 ### Customizing the Chain
 
-The degradation chain order can be customized in `maestro.config.ts`. Only list plugins that are actually available in your environment -- the factory skips unavailable ones automatically, but explicit configuration avoids unnecessary failure/retry cycles.
+The degradation chain order can be customized in your configuration. Only list plugins that are actually available in your environment -- the factory skips unavailable ones automatically, but explicit configuration avoids unnecessary failure/retry cycles.
 
 ---
 

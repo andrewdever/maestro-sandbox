@@ -12,7 +12,7 @@ import type { ZodSchema } from 'zod';
  * or infrastructure isolation (Tier 3).
  *
  * Plugins are loaded dynamically via the registry — only the plugin
- * specified in `maestro.config.ts` is imported at runtime.
+ * specified in configuration is imported at runtime.
  */
 export interface SandboxPlugin {
   /** Unique plugin identifier, e.g. `'isolated-vm'`, `'landlock'`, `'mock'`. */

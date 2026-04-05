@@ -1,8 +1,7 @@
 /**
  * Configuration presets and helpers for standalone usage.
  *
- * When using maestro-sandbox outside the Maestro monorepo, there is no
- * maestro.config.ts to provide defaults. This module fills that gap with:
+ * Provides sensible defaults and a batteries-included factory with:
  *
  * - Typed configuration presets (MINIMAL, STANDARD, HARDENED)
  * - A `defineConfig()` helper for type-safe configuration
@@ -40,8 +39,7 @@ import { createRedTeamHarness, getBuiltinCorpus } from './red-team.js';
 /**
  * Complete configuration for a standalone maestro-sandbox deployment.
  *
- * Replaces the `sandbox:` section of `maestro.config.ts` with a
- * single, self-contained configuration object.
+ * Complete, self-contained configuration object for a sandbox deployment.
  */
 export interface MaestroSandboxConfig {
   /**
@@ -312,8 +310,8 @@ export interface SecureSandboxResult {
  * Create a sandbox with defense pipeline, guardrails, and escalation
  * detection — all wired together from a single config object.
  *
- * This replaces the multi-step setup that `maestro.config.ts` + `@maestro/spec`
- * used to handle in the monorepo. One function, batteries included.
+ * One function, batteries included — wires up sandbox + defense pipeline +
+ * guardrails + escalation detection from a single config object.
  *
  * @example
  * ```typescript

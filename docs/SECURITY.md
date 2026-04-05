@@ -24,6 +24,7 @@ in production environments.
 9. [Task Grounding](#9-task-grounding)
 10. [Red Team Harness](#10-red-team-harness)
 11. [Audit and Observability](#11-audit-and-observability)
+12. [Supply Chain](#12-supply-chain)
 
 ---
 
@@ -627,6 +628,61 @@ observability platforms.
 
 When enabled, audit events are emitted as OpenTelemetry spans and logs,
 compatible with any OTLP-compatible backend (Jaeger, Grafana, Datadog, etc.).
+
+---
+
+## 12. Supply Chain
+
+Maestro Sandbox has **4 production dependencies**. All others are devDependencies (build/test only, not shipped).
+
+### Production Dependencies
+
+| Package | Version | License | Purpose | Native Code |
+|---------|---------|---------|---------|-------------|
+| `isolated-vm` | ^6.1.2 | MIT | V8 isolate sandbox (Tier 1 default plugin) | Yes (node-gyp) |
+| `zod` | ^3.24.0 | MIT | Schema validation for host function arguments | No |
+| `e2b` | ^2.18.0 | MIT | E2B cloud micro-VM sandbox (Tier 3, optional) | No |
+| `@anthropic-ai/sandbox-runtime` | ^0.0.46 | MIT | Anthropic Secure Runtime (Tier 2, optional) | No |
+
+### Transitive Dependencies (production)
+
+Total production dependency tree: **~50 packages** (including transitive deps).
+
+**`isolated-vm`** (1 transitive dep):
+- `node-gyp-build` — Native addon build tool. Compiles V8 isolate bindings.
+
+**`zod`** — Zero transitive dependencies.
+
+**`e2b`** (~25 transitive deps):
+- `@bufbuild/protobuf`, `@connectrpc/connect` — gRPC/protobuf for E2B API
+- `glob`, `tar`, `chalk` — File operations and terminal output
+- `openapi-fetch` — HTTP client for E2B REST API
+- `dockerfile-ast` — Dockerfile parsing
+
+**`@anthropic-ai/sandbox-runtime`** (~5 transitive deps):
+- `commander` — CLI argument parsing
+- `lodash-es` — Utility functions
+- `shell-quote` — Shell command quoting
+- `@pondwader/socks5-server` — SOCKS5 proxy for sandbox networking
+
+### Risk Assessment
+
+| Risk | Mitigation |
+|------|------------|
+| Native code in `isolated-vm` | Pinned version, compiled from source via node-gyp (no prebuilt binaries from untrusted CDN) |
+| E2B cloud dependency | Optional — only loaded if `plugin: 'e2b'` is configured. Data leaves your infrastructure. |
+| Anthropic runtime dependency | Optional — only loaded if `plugin: 'anthropic-sr'` is configured. |
+| Transitive dependency compromise | Dynamic `import()` loading means unused plugins and their deps are never imported at runtime |
+
+### Minimizing the Dependency Surface
+
+If you only use `isolated-vm` (Tier 1), you can mark the optional plugins as optional in your deployment:
+
+- `e2b` is only imported when `plugin: 'e2b'` is selected
+- `@anthropic-ai/sandbox-runtime` is only imported when `plugin: 'anthropic-sr'` is selected
+- Neither is loaded by `PRESETS.MINIMAL` or `PRESETS.STANDARD`
+
+The core sandbox + defense pipeline + guardrails + escalation detection depend only on `isolated-vm` and `zod`.
 
 ---
 

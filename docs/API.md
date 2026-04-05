@@ -748,7 +748,7 @@ level and provenance tag. Higher privilege always wins in conflicts.
 ```typescript
 enum InstructionPrivilege {
   SYSTEM = 0,       // Hardcoded safety invariants (non-overridable)
-  OPERATOR = 1,     // maestro.config.ts operator policies
+  OPERATOR = 1,     // Operator-defined policies
   SUPERVISOR = 2,   // Human-in-the-loop overrides
   AGENT = 3,        // Primary LLM agent instructions
   TOOL_OUTPUT = 4,  // Return values from host functions

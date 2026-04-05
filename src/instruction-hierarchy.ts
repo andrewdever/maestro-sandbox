@@ -7,7 +7,7 @@
  *
  * Privilege levels (highest to lowest):
  *   0 - SYSTEM:        Hardcoded safety invariants (non-overridable)
- *   1 - OPERATOR:      maestro.config.ts operator policies
+ *   1 - OPERATOR:      configuration operator policies
  *   2 - SUPERVISOR:    Human-in-the-loop overrides
  *   3 - AGENT:         Primary LLM agent instructions
  *   4 - TOOL_OUTPUT:   Return values from host functions
@@ -29,7 +29,7 @@
 export enum InstructionPrivilege {
   /** Hardcoded safety invariants. Cannot be overridden by any content. */
   SYSTEM = 0,
-  /** Operator-defined policies from maestro.config.ts. */
+  /** Operator-defined policies from configuration. */
   OPERATOR = 1,
   /** Human supervisor overrides (e.g., HITL approval). */
   SUPERVISOR = 2,
@@ -66,7 +66,7 @@ export interface ProvenancedMessage<T = string> {
   /** Privilege level of this content. */
   privilege: InstructionPrivilege;
 
-  /** Human-readable source identifier, e.g. 'maestro.config.ts', 'sandbox:sbx_000001', 'mcp:github'. */
+  /** Human-readable source identifier, e.g. 'configuration', 'sandbox:sbx_000001', 'mcp:github'. */
   source: string;
 
   /** ISO 8601 timestamp of when this message was created. */
@@ -87,7 +87,7 @@ export interface ProvenancedMessage<T = string> {
 // ---------------------------------------------------------------------------
 
 /**
- * Operator-defined policy rules from maestro.config.ts.
+ * Operator-defined policy rules from configuration.
  *
  * These are OPERATOR-privilege (level 1) and cannot be overridden
  * by agent, user, or internet-sourced content.
@@ -183,7 +183,7 @@ export function downgradePrivilege<T>(
  *
  * The security spec splits Level 3 into three sub-levels based on
  * content source. Each sub-level maps to a different policy tier
- * configured in maestro.config.ts `sandbox.security`.
+ * configured in `defense.trustPolicies`.
  *
  * Reference: RedCodeAgent (82.4% execute malicious peer code),
  *            MCPTox (tool description poisoning)

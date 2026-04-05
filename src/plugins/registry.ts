@@ -3,7 +3,7 @@ import type { PluginRegistry } from '../types.js';
 /**
  * Dynamic plugin registry.
  *
- * Only the plugin named in `maestro.config.ts` gets loaded at runtime.
+ * Only the plugin specified in config gets loaded at runtime.
  * All others are never imported — dynamic `import()` ensures tree-shaking
  * and zero overhead for unused plugins.
  */

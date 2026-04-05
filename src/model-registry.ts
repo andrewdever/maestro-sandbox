@@ -1,7 +1,7 @@
 /**
  * Model Registry (§14.13).
  *
- * Architecture: Config in maestro.config.ts format.
+ * Architecture: Declarative config format.
  * Defines types and validation for model requirements.
  *
  * Validation rules:
