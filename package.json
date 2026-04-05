@@ -1,0 +1,52 @@
+{
+  "name": "maestro-sandbox",
+  "version": "0.1.0",
+  "description": "LLM agent sandboxing with multi-tier isolation and defense-in-depth",
+  "type": "module",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/andrewdever/maestro-sandbox.git"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./plugins/*": {
+      "types": "./dist/plugins/*.d.ts",
+      "default": "./dist/plugins/*.js"
+    }
+  },
+  "files": [
+    "dist",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src/",
+    "test": "vitest run",
+    "test:integration": "vitest run --dir src/__tests__/integration",
+    "test:security": "vitest run --dir src/__tests__/security",
+    "test:e2e": "vitest run --dir src/__tests__/e2e",
+    "test:perf": "vitest bench",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@anthropic-ai/sandbox-runtime": "^0.0.46",
+    "e2b": "^2.18.0",
+    "isolated-vm": "^6.1.2",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0",
+    "typescript-eslint": "^8.0.0",
+    "vitest": "^3.0.0"
+  }
+}
