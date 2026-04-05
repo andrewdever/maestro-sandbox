@@ -183,7 +183,7 @@ export function downgradePrivilege<T>(
  *
  * The security spec splits Level 3 into three sub-levels based on
  * content source. Each sub-level maps to a different policy tier
- * configured in `defense.trustPolicies`.
+ * configured in `sandbox.security` config.
  *
  * Reference: RedCodeAgent (82.4% execute malicious peer code),
  *            MCPTox (tool description poisoning)

@@ -221,8 +221,9 @@ export async function createSandbox(options: CreateSandboxOptions): Promise<Sand
  * Default degradation chain.
  * Docker Sandboxes (T3) → E2B (T3) → Landlock (T2) → Anthropic SR (T2) → isolated-vm (T1)
  *
- * OpenShell is NOT in the default chain — it requires explicit opt-in.
- * Use OPENSHELL_DEGRADATION_CHAIN for openshell-first degradation.
+ * OpenShell is NOT in the default chain — it requires explicit opt-in via
+ * `experimental.openshell: true` in config. Use
+ * OPENSHELL_DEGRADATION_CHAIN for openshell-first degradation.
  */
 const DEFAULT_DEGRADATION_CHAIN: DegradationChain = [
   'docker', 'e2b', 'landlock', 'anthropic-sr', 'isolated-vm',

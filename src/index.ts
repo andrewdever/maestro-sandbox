@@ -1,10 +1,6 @@
 export { createSandbox, createSandboxWithDegradation, resetCircuitBreakers, getCircuitBreakerState, OPENSHELL_DEGRADATION_CHAIN } from './factory.js';
 export type { DegradationOptions, ShadowModeResult } from './factory.js';
 
-// Configuration & convenience factory
-export { defineConfig, createSecureSandbox, PRESETS } from './config.js';
-export type { MaestroSandboxConfig, DefenseConfig, SecureSandboxResult } from './config.js';
-
 // Types — re-export everything consumers need
 export type {
   SandboxPlugin,
@@ -245,3 +241,9 @@ export {
   OPENSHELL_VERSION,
   type OpenShellPolicy,
 } from './plugins/openshell.js';
+
+// Threat Model — code-accessible path to the threat model document
+import { resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+const __dirname = dirname(fileURLToPath(import.meta.url));
+export const THREAT_MODEL_PATH = resolve(__dirname, 'threat-model.md');

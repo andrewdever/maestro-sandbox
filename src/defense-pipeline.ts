@@ -83,8 +83,8 @@ export interface SessionDefenseState {
 }
 
 /**
- * Per-trust-sub-level policy.
- * Configured via `defense.trustPolicies` in MaestroSandboxConfig.
+ * Per-trust-sub-level policy (Per-trust-sub-level policy).
+ * Defined here to avoid cross-package import; structurally compatible.
  */
 export interface TrustLevelPolicy {
   blockedPatterns?: string[];
@@ -98,6 +98,7 @@ export interface TrustLevelPolicy {
 
 /**
  * Security configuration mapping trust sub-levels to policies.
+ * Configured via `defense` in MaestroSandboxConfig.
  */
 export interface SecurityPolicyConfig {
   trustLevel3a?: TrustLevelPolicy;

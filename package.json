@@ -1,5 +1,5 @@
 {
-  "name": "maestro-sandbox",
+  "name": "@maestro/sandbox",
   "version": "0.1.0",
   "description": "LLM agent sandboxing with multi-tier isolation and defense-in-depth",
   "type": "module",
@@ -23,6 +23,7 @@
   },
   "files": [
     "dist",
+    "src/threat-model.md",
     "LICENSE"
   ],
   "scripts": {
@@ -34,7 +35,8 @@
     "test:security": "vitest run --dir src/__tests__/security",
     "test:e2e": "vitest run --dir src/__tests__/e2e",
     "test:perf": "vitest bench",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "prepare": "npm run build"
   },
   "dependencies": {
     "@anthropic-ai/sandbox-runtime": "^0.0.46",
