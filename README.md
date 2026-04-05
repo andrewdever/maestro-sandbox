@@ -98,6 +98,19 @@ Copy [`.env.example`](.env.example) to `.env`. Most features work without any en
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | No | OpenTelemetry audit span export |
 | `OTEL_SERVICE_NAME` | No | Service name for OTel spans |
 
+## Dependencies & Supply Chain
+
+4 production dependencies. That's it.
+
+| Package | Version | License | What It Does |
+|---------|---------|---------|-------------|
+| `isolated-vm` | ^6.1.2 | MIT | V8 isolate sandbox (Tier 1 default) |
+| `zod` | ^3.24.0 | MIT | Schema validation for host function args |
+| `e2b` | ^2.18.0 | MIT | E2B cloud micro-VMs (Tier 3, optional) |
+| `@anthropic-ai/sandbox-runtime` | ^0.0.46 | MIT | Anthropic Secure Runtime (Tier 2, optional) |
+
+The core sandbox + full defense pipeline only needs `isolated-vm` and `zod`. The other two are optional — only loaded at runtime if you select their plugin. ~50 total packages in the transitive tree. See [Supply Chain](docs/SECURITY.md#12-supply-chain) for the full risk assessment.
+
 ## Using the Defense Pipeline
 
 `createSecureSandbox()` wires up the defense pipeline automatically. Process input before executing code.
