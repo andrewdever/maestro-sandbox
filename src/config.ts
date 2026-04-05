@@ -44,12 +44,12 @@ import { createRedTeamHarness, getBuiltinCorpus } from './red-team.js';
 export interface MaestroSandboxConfig {
   /**
    * Which plugin to use.
-   * - `'isolated-vm'` — Tier 1, V8 isolate (default, cross-platform, fast)
+   * - `'docker'` — Tier 3, Docker containers (**recommended for production**)
+   * - `'openshell'` — Tier 3, NVIDIA OpenShell (K3s + 4-layer policy)
+   * - `'e2b'` — Tier 3, E2B cloud micro-VMs (requires E2B_API_KEY)
    * - `'anthropic-sr'` — Tier 2, Anthropic Secure Runtime (macOS/Linux)
    * - `'landlock'` — Tier 2, Seatbelt/Landlock (macOS)
-   * - `'docker'` — Tier 3, Docker containers
-   * - `'e2b'` — Tier 3, E2B cloud micro-VMs (requires E2B_API_KEY)
-   * - `'openshell'` — Tier 3, NVIDIA OpenShell (requires openshell CLI)
+   * - `'isolated-vm'` — Tier 1, V8 isolate (fast, cross-platform, but weaker isolation)
    * - `'mock'` — Tier 1, testing only (no real isolation)
    *
    * Or pass `'auto'` to use the degradation chain.
@@ -186,8 +186,8 @@ const HARDENED_TRUST_POLICIES: SecurityPolicyConfig = {
  * Configuration presets for common use cases.
  *
  * - **MINIMAL** — Sandbox only, no defense pipeline. For trusted code or testing.
- * - **STANDARD** — Sandbox + defense pipeline + guardrails + escalation detection.
- *   Recommended for most applications.
+ * - **STANDARD** — Docker container sandbox + defense pipeline + guardrails +
+ *   escalation detection. Recommended for production.
  * - **HARDENED** — Strict policies, lower thresholds, trust sub-level enforcement.
  *   For untrusted code, MCP servers, or multi-tenant deployments.
  */
@@ -199,10 +199,10 @@ export const PRESETS = {
     defense: false as const,
   } satisfies MaestroSandboxConfig,
 
-  /** Sandbox + defense pipeline. Recommended for most applications. */
+  /** Sandbox + defense pipeline. Docker for real isolation. Recommended for production. */
   STANDARD: {
-    plugin: 'isolated-vm',
-    limits: { ...DEFAULT_LIMITS },
+    plugin: 'docker',
+    limits: { ...DEFAULT_LIMITS, memoryMB: 256 },
     defense: {
       guardrails: {},
       escalation: {},

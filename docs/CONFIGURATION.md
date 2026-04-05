@@ -33,9 +33,9 @@ cp sandbox.config.example.ts sandbox.config.ts
 import { defineConfig } from 'maestro-sandbox';
 
 export default defineConfig({
-  plugin: 'isolated-vm',
+  plugin: 'docker',  // Recommended for production
   limits: {
-    memoryMB: 128,
+    memoryMB: 256,
     cpuMs: 5000,
     timeoutMs: 10000,
     networkAccess: false,
@@ -108,12 +108,12 @@ const { sandbox } = await createSecureSandbox(PRESETS.MINIMAL);
 
 ### STANDARD
 
-Sandbox with defense pipeline, guardrails, escalation detection, and trust sub-level policies. Recommended for most applications.
+Docker container sandbox with defense pipeline, guardrails, escalation detection, and trust sub-level policies. **Recommended for production.**
 
 | Setting | Value |
 |---------|-------|
-| Plugin | `isolated-vm` |
-| Memory | 128 MB |
+| Plugin | `docker` |
+| Memory | 256 MB |
 | CPU | 5000 ms |
 | Timeout | 10000 ms |
 | Network | disabled |
@@ -212,19 +212,20 @@ The `limits` field defines hard resource caps enforced by the sandbox runtime.
 
 | Plugin | Tier | Isolation | Platform | Requirements |
 |--------|------|-----------|----------|-------------|
-| `isolated-vm` | 1 | V8 isolate | Cross-platform | None (default) |
+| `docker` | 3 | Docker container | Cross-platform | Docker daemon (**recommended**) |
+| `openshell` | 3 | NVIDIA OpenShell | Linux | `openshell` CLI |
+| `e2b` | 3 | Cloud micro-VM | Cross-platform | `E2B_API_KEY` |
 | `anthropic-sr` | 2 | Anthropic Secure Runtime | macOS, Linux | Runtime installed |
 | `landlock` | 2 | Seatbelt/Landlock | macOS | None |
-| `docker` | 3 | Docker container | Cross-platform | Docker daemon |
-| `e2b` | 3 | Cloud micro-VM | Cross-platform | `E2B_API_KEY` |
-| `openshell` | 3 | NVIDIA OpenShell | Linux | `openshell` CLI |
+| `isolated-vm` | 1 | V8 isolate | Cross-platform | None |
 | `mock` | 1 | None | Cross-platform | None (testing only) |
 
 ### Choosing a Plugin
 
-- **Start with `isolated-vm`** -- fastest, zero dependencies, sufficient for most use cases.
+- **Start with `docker`** -- real container isolation, cross-platform, and the recommended default for production.
+- **Use `isolated-vm`** for development and testing -- fastest startup, zero dependencies, but V8 isolates are not a security boundary against determined attackers.
 - **Use Tier 2 (`landlock`, `anthropic-sr`)** when sandboxed code needs OS-level operations (shell commands, filesystem access beyond tmpfs).
-- **Use Tier 3 (`docker`, `e2b`, `openshell`)** when you need full process isolation, network access, or multi-language runtimes.
+- **Use `openshell`** for maximum isolation with K3s + 4-layer policy enforcement.
 
 ### Auto Mode
 

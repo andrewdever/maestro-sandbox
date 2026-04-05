@@ -11,18 +11,18 @@ import { defineConfig } from 'maestro-sandbox';
 
 export default defineConfig({
   // --- Plugin Selection ---
-  // 'isolated-vm' — Fast, cross-platform V8 isolate (default)
+  // 'docker'       — Docker container (recommended for production)
+  // 'openshell'    — NVIDIA OpenShell (K3s + 4-layer policy)
+  // 'e2b'          — E2B cloud micro-VM (requires E2B_API_KEY)
   // 'anthropic-sr' — OS-level sandbox (macOS/Linux)
   // 'landlock'     — Seatbelt sandbox (macOS)
-  // 'docker'       — Docker container
-  // 'e2b'          — E2B cloud micro-VM (requires E2B_API_KEY)
-  // 'openshell'    — NVIDIA OpenShell (requires CLI)
+  // 'isolated-vm'  — Fast V8 isolate (weaker isolation, good for dev/testing)
   // 'auto'         — Try best available, degrade gracefully
-  plugin: 'isolated-vm',
+  plugin: 'docker',
 
   // --- Resource Limits ---
   limits: {
-    memoryMB: 128,       // Max heap memory
+    memoryMB: 256,       // Max heap memory
     cpuMs: 5000,         // Max CPU time
     timeoutMs: 10000,    // Max wall-clock time
     networkAccess: false, // Block all outbound network

@@ -22,7 +22,7 @@ console.log(result.result); // 4
 await sandbox.destroy();
 ```
 
-That gives you a V8 isolate sandbox with the full defense pipeline, guardrails, and escalation detection. One function call, batteries included.
+That gives you a Docker container sandbox with the full defense pipeline, guardrails, and escalation detection. One function call, batteries included. Requires Docker running locally.
 
 ## Configuration
 
@@ -33,7 +33,7 @@ Three presets cover common deployment scenarios. Pick one and go.
 | Preset | Plugin | Defense Pipeline | Use Case |
 |--------|--------|-----------------|----------|
 | `MINIMAL` | `isolated-vm` | None | Trusted code, testing |
-| `STANDARD` | `isolated-vm` | Full pipeline | Most applications |
+| `STANDARD` | `docker` | Full pipeline | **Production (recommended)** |
 | `HARDENED` | `auto` (Tier 2+) | Strict thresholds | Untrusted code, MCP, multi-tenant |
 
 ```typescript
@@ -42,14 +42,14 @@ import { createSecureSandbox, PRESETS } from 'maestro-sandbox';
 // Testing or trusted internal code
 const { sandbox } = await createSecureSandbox(PRESETS.MINIMAL);
 
-// Production with defense pipeline (recommended)
+// Production — Docker container isolation + full defense pipeline (recommended)
 const { sandbox, defense } = await createSecureSandbox(PRESETS.STANDARD);
 
 // Untrusted code, MCP servers, multi-tenant
 const { sandbox, defense } = await createSecureSandbox(PRESETS.HARDENED);
 ```
 
-> **Warning:** `MINIMAL` disables the defense pipeline entirely. Tier 1 (`isolated-vm`) is NOT a security boundary against determined attackers. Use `STANDARD` or `HARDENED` for untrusted code.
+> **Recommended:** Use `STANDARD` for production — Docker provides real process isolation, not just V8 isolates. `MINIMAL` disables the defense pipeline entirely and Tier 1 (`isolated-vm`) is NOT a security boundary against determined attackers.
 
 ### Custom Configuration with `defineConfig()`
 
@@ -132,18 +132,18 @@ The defense pipeline returns one of four actions: `allow`, `block`, `flag`, or `
 
 ## Plugins
 
-10 isolation backends across 3 tiers, with automatic degradation when higher tiers are unavailable:
+10 isolation backends across 3 tiers. **Docker is the recommended default for production** — it provides real container isolation, runs on all platforms, and requires no special configuration.
 
 | Plugin | Tier | Isolation | Platform | Status | Startup |
 |--------|------|-----------|----------|--------|---------|
-| **isolated-vm** | 1 | V8 isolate | All | Stable | <200ms |
-| **mock** | 1 | None (testing) | All | Stable | <50ms |
+| **docker** | 3 | Container | All | **Recommended** | 1-3s |
+| **openshell** | 3 | K3s + 4-layer policy | All | Stable | 3-5s |
+| **e2b** | 3 | Cloud micro-VM | Cloud | Stable | 2-5s |
 | **anthropic-sr** | 2 | Seatbelt / Landlock | macOS, Linux | Stable | 50-200ms |
 | **landlock** | 2 | Seatbelt (macOS) | macOS | Stable | 50-200ms |
 | **firejail** | 2 | Firejail CLI | Linux | V1.1 | TBD |
-| **docker** | 3 | Container | All | Stable | 1-3s |
-| **e2b** | 3 | Cloud micro-VM | Cloud | Stable | 2-5s |
-| **openshell** | 3 | K3s + 4-layer policy | All | Stable | 3-5s |
+| **isolated-vm** | 1 | V8 isolate | All | Stable | <200ms |
+| **mock** | 1 | None (testing) | All | Stable | <50ms |
 | **docker-pi** | 2/3 | Process isolation | Windows | V1.1 | TBD |
 | **microsandbox** | 3 | libkrun micro-VM | All | V1.1 | <200ms |
 
@@ -398,6 +398,14 @@ maestro-sandbox/
     ├── THREAT_MODEL.md
     └── API.md
 ```
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, pull request process, and the full roadmap of planned features including:
+
+- **V1.1** — Firejail, Microsandbox, and Docker-PI plugin implementations; host function IPC bridge for Tier 2/3; redaction hardening
+- **Security** — mTLS between sandboxes, plugin code signing (Ed25519), vault integration, ML guardrail evaluators
+- **Package** — SBOM generation, CI/CD pipeline, npm publishing, full OTel integration
 
 ## License
 
