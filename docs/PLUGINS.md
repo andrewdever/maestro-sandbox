@@ -453,6 +453,37 @@ Aims to combine Tier 3 isolation strength with Tier 1 startup speed.
 | **macOS without Docker** | `landlock` or `anthropic-sr` | OS-level restrictions without containers |
 | **Windows** | `isolated-vm` (V1), `docker-pi` (V1.1) | Limited options until docker-pi ships |
 
+### Automatic Plugin Selection
+
+Instead of hardcoding a plugin name, you can use `plugin: 'auto'` with `mcpMinTier`
+to let the factory select the best available plugin and automatically degrade if it
+is unavailable:
+
+```typescript
+import { createSecureSandbox } from '@maestro/sandbox';
+
+const { sandbox } = await createSecureSandbox({
+  plugin: 'auto',
+  mcpMinTier: 2,  // Never fall below Tier 2
+  limits: { memoryMB: 256, timeoutMs: 30000 },
+});
+```
+
+The factory walks the degradation chain and picks the first available plugin at or
+above `mcpMinTier`. If all plugins above the floor are unavailable, creation fails
+with a `SandboxCrashError` rather than silently degrading to an unsafe tier.
+
+For executing untrusted code, use `PRESETS.HARDENED` -- it configures Tier 3 isolation
+with the full defense pipeline and the most restrictive trust sub-level policies:
+
+```typescript
+import { createSecureSandbox, PRESETS } from '@maestro/sandbox';
+
+const { sandbox, defense, shutdown } = await createSecureSandbox(PRESETS.HARDENED);
+```
+
+See [CONFIGURATION.md](./CONFIGURATION.md) for the full preset definitions.
+
 ### Feature Comparison
 
 | Feature | isolated-vm | mock | anthropic-sr | landlock | docker | e2b | openshell |

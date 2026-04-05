@@ -5,31 +5,121 @@
 
 **LLM agent sandboxing with multi-tier isolation and defense-in-depth.**
 
-Maestro Sandbox provides a unified interface for executing untrusted code across 10 isolation backends — from in-process V8 isolates to cloud micro-VMs — with a 4-layer defense pipeline, 8-level instruction hierarchy, red team harness, and comprehensive audit logging.
-
-## Quick Start
+## 30-Second Setup
 
 ```bash
 npm install maestro-sandbox
 ```
 
 ```typescript
-import { createSandbox } from 'maestro-sandbox';
+import { createSecureSandbox, PRESETS } from 'maestro-sandbox';
 
-const sandbox = await createSandbox({
-  plugin: 'isolated-vm',
-  config: {
-    limits: { memoryMB: 128, cpuMs: 5000, timeoutMs: 10000, networkAccess: false, filesystemAccess: 'tmpfs' },
+const { sandbox, defense } = await createSecureSandbox(PRESETS.STANDARD);
+
+const result = await sandbox.execute('return 2 + 2');
+console.log(result.result); // 4
+
+await sandbox.destroy();
+```
+
+That gives you a V8 isolate sandbox with the full defense pipeline, guardrails, and escalation detection. One function call, batteries included.
+
+## Configuration
+
+### Presets
+
+Three presets cover common deployment scenarios. Pick one and go.
+
+| Preset | Plugin | Defense Pipeline | Use Case |
+|--------|--------|-----------------|----------|
+| `MINIMAL` | `isolated-vm` | None | Trusted code, testing |
+| `STANDARD` | `isolated-vm` | Full pipeline | Most applications |
+| `HARDENED` | `auto` (Tier 2+) | Strict thresholds | Untrusted code, MCP, multi-tenant |
+
+```typescript
+import { createSecureSandbox, PRESETS } from 'maestro-sandbox';
+
+// Testing or trusted internal code
+const { sandbox } = await createSecureSandbox(PRESETS.MINIMAL);
+
+// Production with defense pipeline (recommended)
+const { sandbox, defense } = await createSecureSandbox(PRESETS.STANDARD);
+
+// Untrusted code, MCP servers, multi-tenant
+const { sandbox, defense } = await createSecureSandbox(PRESETS.HARDENED);
+```
+
+> **Warning:** `MINIMAL` disables the defense pipeline entirely. Tier 1 (`isolated-vm`) is NOT a security boundary against determined attackers. Use `STANDARD` or `HARDENED` for untrusted code.
+
+### Custom Configuration with `defineConfig()`
+
+For fine-grained control, use `defineConfig()` for type-safe autocomplete.
+
+```typescript
+import { defineConfig, createSecureSandbox } from 'maestro-sandbox';
+
+const config = defineConfig({
+  plugin: 'docker',
+  limits: {
+    memoryMB: 256,
+    cpuMs: 10000,
+    timeoutMs: 30000,
+    networkAccess: false,
+    filesystemAccess: 'tmpfs',
+  },
+  defense: {
+    guardrails: {
+      disabledCategories: ['training-data-poisoning'],
+    },
+    escalation: {
+      maxTurns: 100,
+    },
+    trustPolicies: {
+      trustLevel3c: {
+        allowCodeExecution: false,
+        requireApproval: ['*'],
+      },
+    },
   },
 });
 
+const { sandbox, defense } = await createSecureSandbox(config);
+```
+
+Copy [`sandbox.config.example.ts`](sandbox.config.example.ts) as a starting point. It documents every option with inline comments.
+
+### Environment Variables
+
+Copy [`.env.example`](.env.example) to `.env`. Most features work without any environment variables. Only `E2B_API_KEY` is required for cloud sandboxing (Tier 3).
+
+| Variable | Required | Purpose |
+|----------|----------|---------|
+| `E2B_API_KEY` | Only for E2B plugin | Cloud micro-VM sandbox ([e2b.dev](https://e2b.dev)) |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | No | OpenTelemetry audit span export |
+| `OTEL_SERVICE_NAME` | No | Service name for OTel spans |
+
+### Standalone vs. Monorepo
+
+Previously, sandbox configuration lived in `maestro.config.ts` inside the Maestro monorepo. The new standalone API (`createSecureSandbox`, `defineConfig`, `PRESETS`) replaces that. You no longer need `@maestro/spec` or the full monorepo to use the sandbox.
+
+## Using the Defense Pipeline
+
+`createSecureSandbox()` wires up the defense pipeline automatically. Process input before executing code.
+
+```typescript
+const { sandbox, defense } = await createSecureSandbox(PRESETS.STANDARD);
+
 try {
-  const result = await sandbox.execute('return 2 + 2');
-  console.log(result.result); // 4
+  const check = await defense.processInput(message);
+  if (check.action !== 'block') {
+    const result = await sandbox.execute(code);
+  }
 } finally {
   await sandbox.destroy();
 }
 ```
+
+The defense pipeline returns one of four actions: `allow`, `block`, `flag`, or `modify`. See [Defense Pipeline](#defense-pipeline) for details.
 
 ## Plugins
 
@@ -48,30 +138,34 @@ try {
 | **docker-pi** | 2/3 | Process isolation | Windows | V1.1 | TBD |
 | **microsandbox** | 3 | libkrun micro-VM | All | V1.1 | <200ms |
 
-**Degradation chain (default):** Docker → E2B → Landlock → Anthropic SR → isolated-vm
+**Degradation chain (default):** Docker -> E2B -> Landlock -> Anthropic SR -> isolated-vm
 
 ```typescript
 import { createSandboxWithDegradation } from 'maestro-sandbox';
 
 const sandbox = await createSandboxWithDegradation({
   config: { limits: { memoryMB: 256, cpuMs: 10000, timeoutMs: 30000, networkAccess: false, filesystemAccess: 'tmpfs' } },
-  mcpMinTier: 2, // hard floor — won't fall below Tier 2
+  mcpMinTier: 2, // hard floor -- won't fall below Tier 2
 });
 ```
+
+Or use `PRESETS.HARDENED`, which sets `plugin: 'auto'` and `mcpMinTier: 2` for you.
 
 ## Defense Pipeline
 
 4 independent layers, fail-closed. A single layer veto blocks the request.
 
 ```
-Input → [Operator Policy] → [Guardrail Pipeline] → [Escalation Detector] → [Spotlighting] → Output
-              │                     │                       │                      │
+Input -> [Operator Policy] -> [Guardrail Pipeline] -> [Escalation Detector] -> [Spotlighting] -> Output
+              |                     |                       |                      |
          Privilege-based       11 safety            5 heuristic          Boundary tokens
          blocklists +          categories            detectors           on untrusted
          ReDoS protection      (pattern eval)        (multi-turn)        content
 ```
 
-**Operating modes:** `normal` → `degraded` (5+ flags) → `lockdown` (3+ blocks)
+**Operating modes:** `normal` -> `degraded` (5+ flags) -> `lockdown` (3+ blocks)
+
+For manual pipeline construction (advanced):
 
 ```typescript
 import { createDefensePipeline, createGuardrailPipeline, createEscalationDetector } from 'maestro-sandbox';
@@ -85,22 +179,24 @@ const result = await pipeline.evaluate(message);
 // result.action: 'allow' | 'block' | 'flag' | 'modify'
 ```
 
+Most users should use `createSecureSandbox()` instead, which wires this up automatically from a preset or config object.
+
 ## Instruction Hierarchy
 
-8-level privilege model — higher privilege always wins in conflicts.
+8-level privilege model. Higher privilege always wins in conflicts.
 
 ```
-Level 0: SYSTEM         — Hardcoded safety invariants (nothing overrides)
-Level 1: OPERATOR       — Config-defined policies
-Level 2: SUPERVISOR     — Human-in-the-loop overrides
-Level 3: AGENT          — Primary LLM agent instructions
-Level 4: TOOL_OUTPUT    — Host function return values
-Level 5: PEER_AGENT     — Messages from peer sandboxes
-Level 6: USER_INPUT     — End-user provided content
-Level 7: INTERNET       — Internet / MCP tool descriptions (lowest trust)
+Level 0: SYSTEM         -- Hardcoded safety invariants (nothing overrides)
+Level 1: OPERATOR       -- Config-defined policies
+Level 2: SUPERVISOR     -- Human-in-the-loop overrides
+Level 3: AGENT          -- Primary LLM agent instructions
+Level 4: TOOL_OUTPUT    -- Host function return values
+Level 5: PEER_AGENT     -- Messages from peer sandboxes
+Level 6: USER_INPUT     -- End-user provided content
+Level 7: INTERNET       -- Internet / MCP tool descriptions (lowest trust)
 ```
 
-Trust sub-levels split Level 3 into `3a` (operator-controlled), `3b` (peer-agent), `3c` (internet) for fine-grained policy enforcement.
+Trust sub-levels split Level 3 into `3a` (operator-controlled), `3b` (peer-agent), `3c` (internet) for fine-grained policy enforcement. Configure these via `defense.trustPolicies` in your config.
 
 ## Security Model
 
@@ -143,7 +239,7 @@ Trust sub-levels split Level 3 into `3a` (operator-controlled), `3b` (peer-agent
 | LLM06 | Sensitive Info Disclosure | Guardrail, redaction, taint tracker, URL allowlist | Yes |
 | LLM07 | Insecure Plugin Design | MCP scanner, plugin-validator, host bridge | Yes |
 | LLM08 | Excessive Agency | Task grounding, trust sub-levels, HITL gating | Yes |
-| LLM09 | Overreliance | — | Out of scope |
+| LLM09 | Overreliance | -- | Out of scope |
 | LLM10 | Model Theft | Guardrail, red team | Yes |
 
 ## Red Team Harness
@@ -151,12 +247,16 @@ Trust sub-levels split Level 3 into `3a` (operator-controlled), `3b` (peer-agent
 100+ built-in attack cases across 11 categories. Run in CI to measure Attack Success Rate (ASR).
 
 ```typescript
+// Using createSecureSandbox (recommended)
+const { runRedTeam } = await createSecureSandbox(PRESETS.STANDARD);
+const { asr, report } = await runRedTeam();
+console.log(`ASR: ${asr}%`); // Target: <5% with full stack
+
+// Or manually
 import { createRedTeamHarness, getBuiltinCorpus, extractRegressionCases } from 'maestro-sandbox';
 
 const harness = createRedTeamHarness({ pipeline });
 const report = await harness.run(getBuiltinCorpus());
-
-console.log(`ASR: ${report.asr}%`); // Target: <5% with full stack
 
 // Convert findings to permanent CI tests
 const regressions = extractRegressionCases(report, { bypassesOnly: true });
@@ -167,24 +267,24 @@ const regressions = extractRegressionCases(report, { bypassesOnly: true });
 Sandboxed code calls host functions through a frozen, schema-validated, rate-limited bridge with SSRF prevention.
 
 ```typescript
+import { createSecureSandbox, defineConfig } from 'maestro-sandbox';
 import { z } from 'zod';
 
-const sandbox = await createSandbox({
+const { sandbox } = await createSecureSandbox(defineConfig({
   plugin: 'isolated-vm',
-  config: {
-    limits: { memoryMB: 128, cpuMs: 5000, timeoutMs: 10000, networkAccess: false, filesystemAccess: 'tmpfs' },
-    hostFunctions: {
-      lookup: {
-        handler: async (args) => {
-          const { key } = args as { key: string };
-          return db.get(key);
-        },
-        schema: z.object({ key: z.string().max(256) }),
-        rateLimit: { maxCalls: 100, windowMs: 60000 },
+  limits: { memoryMB: 128, cpuMs: 5000, timeoutMs: 10000, networkAccess: false, filesystemAccess: 'tmpfs' },
+  defense: false,
+  hostFunctions: {
+    lookup: {
+      handler: async (args) => {
+        const { key } = args as { key: string };
+        return db.get(key);
       },
+      schema: z.object({ key: z.string().max(256) }),
+      rateLimit: { maxCalls: 100, windowMs: 60000 },
     },
   },
-});
+}));
 
 // Inside sandbox:
 // const value = await hostCall('lookup', { key: 'user:123' });
@@ -218,9 +318,9 @@ import { validateTenantId, namespaceSandboxId, sameTenant } from 'maestro-sandbo
 
 const tenantId = validateTenantId('org-acme');
 const sandboxId = namespaceSandboxId(tenantId, 'agent-1');
-// → 'org-acme::agent-1'
+// -> 'org-acme::agent-1'
 
-sameTenant(sandboxId1, sandboxId2); // false → mesh blocked
+sameTenant(sandboxId1, sandboxId2); // false -> mesh blocked
 ```
 
 ## Testing
@@ -237,10 +337,10 @@ npm run test:perf        # Performance benchmarks
 
 ## Documentation
 
-- [Plugin Guide](docs/PLUGINS.md) — Detailed guide for each of the 10 plugins
-- [Security Architecture](docs/SECURITY.md) — Defense-in-depth, guardrails, escalation detection
-- [Threat Model](docs/THREAT_MODEL.md) — Trust boundaries, security assumptions
-- [API Reference](docs/API.md) — Full API surface documentation
+- [Plugin Guide](docs/PLUGINS.md) -- Detailed guide for each of the 10 plugins
+- [Security Architecture](docs/SECURITY.md) -- Defense-in-depth, guardrails, escalation detection
+- [Threat Model](docs/THREAT_MODEL.md) -- Trust boundaries, security assumptions
+- [API Reference](docs/API.md) -- Full API surface documentation
 
 ## Architecture
 
@@ -248,6 +348,7 @@ npm run test:perf        # Performance benchmarks
 maestro-sandbox/
 ├── src/
 │   ├── index.ts                    # Public API (45+ exports)
+│   ├── config.ts                   # Presets, defineConfig(), createSecureSandbox()
 │   ├── types.ts                    # Core type definitions
 │   ├── factory.ts                  # createSandbox() + circuit breaker
 │   ├── plugins/

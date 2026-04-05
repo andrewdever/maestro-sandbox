@@ -11,6 +11,8 @@ in production environments.
 
 ## Table of Contents
 
+- [Recommended Configuration](#recommended-configuration)
+
 1. [Defense Pipeline Architecture](#1-defense-pipeline-architecture)
 2. [Guardrail Pipeline](#2-guardrail-pipeline)
 3. [Escalation Detection](#3-escalation-detection)
@@ -22,6 +24,56 @@ in production environments.
 9. [Task Grounding](#9-task-grounding)
 10. [Red Team Harness](#10-red-team-harness)
 11. [Audit and Observability](#11-audit-and-observability)
+
+---
+
+## Recommended Configuration
+
+For maximum security, use `PRESETS.HARDENED` with `createSecureSandbox()`. This
+wires together Tier 3 isolation, the full defense pipeline, guardrails, and
+escalation detection in a single call:
+
+```typescript
+import { createSecureSandbox, PRESETS } from '@maestro/sandbox';
+
+const { sandbox, defense, shutdown } = await createSecureSandbox(PRESETS.HARDENED);
+```
+
+`PRESETS.HARDENED` enables the most restrictive trust sub-level policies described
+in [Layer 2](#layer-2-trust-sub-level-enforcement) below:
+
+| Sub-level | Policy in HARDENED preset |
+|-----------|--------------------------|
+| **3a** (Agent, Tool Output, User Input) | Code execution allowed; network egress denied; host functions restricted to explicit allowlist |
+| **3b** (Peer Agent) | Code execution denied; network egress denied; max 20 session turns; operator approval required for sensitive operations |
+| **3c** (Internet) | Code execution denied; network egress denied; max 10 session turns; all host functions blocked; max 4096 context tokens |
+
+You can customize individual policies by spreading the preset and overriding
+the `defense.trustLevels` field:
+
+```typescript
+import { createSecureSandbox, PRESETS, defineConfig } from '@maestro/sandbox';
+
+const config = defineConfig({
+  ...PRESETS.HARDENED,
+  defense: {
+    ...PRESETS.HARDENED.defense,
+    trustLevels: {
+      ...PRESETS.HARDENED.defense?.trustLevels,
+      trustLevel3c: {
+        maxContextTokens: 2048,       // Even stricter than default
+        allowCodeExecution: false,
+        allowNetworkEgress: false,
+      },
+    },
+  },
+});
+
+const { sandbox, defense, shutdown } = await createSecureSandbox(config);
+```
+
+For the full configuration reference including all presets and environment
+variables, see [CONFIGURATION.md](./CONFIGURATION.md).
 
 ---
 

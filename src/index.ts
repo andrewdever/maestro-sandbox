@@ -1,6 +1,10 @@
 export { createSandbox, createSandboxWithDegradation, resetCircuitBreakers, getCircuitBreakerState, OPENSHELL_DEGRADATION_CHAIN } from './factory.js';
 export type { DegradationOptions, ShadowModeResult } from './factory.js';
 
+// Configuration & convenience factory
+export { defineConfig, createSecureSandbox, PRESETS } from './config.js';
+export type { MaestroSandboxConfig, DefenseConfig, SecureSandboxResult } from './config.js';
+
 // Types — re-export everything consumers need
 export type {
   SandboxPlugin,

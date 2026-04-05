@@ -12,6 +12,7 @@ import { createSandbox, SandboxTimeoutError, InstructionPrivilege, ... } from '@
 ## Table of Contents
 
 - [Core Factory](#core-factory)
+- [Configuration](#configuration)
 - [Types](#types)
 - [Error Classes](#error-classes)
 - [Subsystems](#subsystems)
@@ -118,6 +119,119 @@ const sandbox = await createSandboxWithDegradation({
   chain: OPENSHELL_DEGRADATION_CHAIN,
   config: { /* ... */ },
 });
+```
+
+---
+
+## Configuration
+
+The configuration system provides a single-function setup for production deployments,
+replacing manual wiring of sandbox + defense pipeline + guardrails + escalation.
+
+> **Full reference:** See [CONFIGURATION.md](./CONFIGURATION.md) for all options,
+> environment variables, and example configs.
+
+### `defineConfig(config: MaestroSandboxConfig): MaestroSandboxConfig`
+
+Type-safe config helper. Returns the config object unchanged -- exists solely for
+editor autocompletion and type checking.
+
+```typescript
+import { defineConfig } from '@maestro/sandbox';
+
+export default defineConfig({
+  plugin: 'docker',
+  limits: { memoryMB: 256, timeoutMs: 30000 },
+  defense: { guardrails: { enabled: true }, escalation: { maxTurns: 50 } },
+});
+```
+
+### `createSecureSandbox(config: MaestroSandboxConfig): Promise<SecureSandboxResult>`
+
+One-function setup that wires together the sandbox, defense pipeline, guardrail
+pipeline, and escalation detector. This is the recommended entry point for
+production deployments.
+
+```typescript
+import { createSecureSandbox, PRESETS } from '@maestro/sandbox';
+
+const { sandbox, defense, shutdown } = await createSecureSandbox(PRESETS.STANDARD);
+
+try {
+  const result = await defense.evaluateInput(message);
+  if (result.action !== 'block') {
+    await sandbox.execute(code);
+  }
+} finally {
+  await shutdown();
+}
+```
+
+### `SecureSandboxResult`
+
+```typescript
+interface SecureSandboxResult {
+  sandbox: Sandbox;
+  defense: DefensePipeline;
+  shutdown: () => Promise<void>;
+}
+```
+
+### `PRESETS`
+
+Pre-built configuration objects for common deployment scenarios.
+
+```typescript
+import { PRESETS } from '@maestro/sandbox';
+```
+
+| Preset | Plugin | Memory | Timeout | Network | Defense |
+|--------|--------|--------|---------|---------|---------|
+| `PRESETS.MINIMAL` | `isolated-vm` | 128MB | 10s | Disabled | Guardrails only |
+| `PRESETS.STANDARD` | `docker` | 256MB | 30s | Disabled | Full pipeline |
+| `PRESETS.HARDENED` | `docker` | 256MB | 30s | Disabled | Full pipeline + strict trust policies |
+
+`PRESETS.HARDENED` is recommended for executing untrusted code. It enables all
+defense layers with the most restrictive trust sub-level policies.
+
+### `MaestroSandboxConfig`
+
+Top-level configuration interface used by `defineConfig()` and `createSecureSandbox()`.
+
+```typescript
+interface MaestroSandboxConfig {
+  plugin: string | SandboxPlugin;
+  limits: SandboxLimits;
+  defense?: DefenseConfig;
+  permissions?: string[];
+  secrets?: Record<string, string>;
+  network?: NetworkConfig;
+  hostFunctions?: Record<string, HostFunction>;
+  mcpMinTier?: number;
+  degradationChain?: DegradationChain;
+}
+```
+
+### `DefenseConfig`
+
+Configuration for the defense pipeline layers.
+
+```typescript
+interface DefenseConfig {
+  guardrails?: {
+    enabled: boolean;
+    thresholds?: GuardrailThresholds;
+    evaluatorTimeoutMs?: number;
+  };
+  escalation?: {
+    maxTurns?: number;
+    embeddingFn?: EmbeddingFn;
+  };
+  spotlight?: SpotlightConfig;
+  operatorPolicy?: OperatorPolicy;
+  trustLevels?: SecurityPolicyConfig;
+  latencyBudgetMs?: number;
+}
 ```
 
 ---
