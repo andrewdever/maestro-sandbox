@@ -403,9 +403,9 @@ maestro-sandbox/
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, pull request process, and the full roadmap of planned features including:
 
-- **V1.1** — Firejail, Microsandbox, and Docker-PI plugin implementations; host function IPC bridge for Tier 2/3; redaction hardening
+- **V1.1** — Firejail, Microsandbox, and Docker-PI plugin implementations; Landlock Linux Rust NAPI-RS bindings; host function IPC bridge for Tier 2/3
 - **Security** — mTLS between sandboxes, plugin code signing (Ed25519), vault integration, ML guardrail evaluators
-- **Package** — SBOM generation, CI/CD pipeline, npm publishing, full OTel integration
+- **V2** — Rust port
 
 ## License
 

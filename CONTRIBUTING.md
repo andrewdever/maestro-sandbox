@@ -39,6 +39,7 @@ npm run test:perf        # Performance benchmarks
 Finishing the plugin matrix and closing test gaps.
 
 **Plugins:**
+- [ ] **Landlock Linux native bindings (Rust NAPI-RS)** — The `landlock` plugin currently only works on macOS (Seatbelt). Linux support requires Rust NAPI-RS native bindings for Landlock LSM + seccomp BPF. Needs Rust toolchain, cross-compilation (x86_64 + aarch64), prebuilt binary distribution, and SLSA provenance attestation.
 - [ ] **Firejail plugin** — Linux process sandboxing via Firejail CLI (Tier 2)
 - [ ] **Docker Process Isolation plugin** — Windows container isolation via `--isolation=process` (Tier 2/3)
 - [ ] **Microsandbox plugin** — libkrun micro-VM sandboxing with <200ms startup (Tier 3)
@@ -116,6 +117,10 @@ Finishing the plugin matrix and closing test gaps.
 - [ ] **Plugin marketplace** — registry for community-contributed sandbox plugins
 - [ ] macOS Seatbelt deprecation contingency (Apple may remove `sandbox-exec`)
 - [ ] Windows native sandbox plugin (beyond Docker process isolation)
+
+### V2 — Rust Port
+
+- [ ] Port maestro-sandbox to Rust — single binary, native sandboxing primitives, no Node.js runtime dependency
 
 ### Research & Long-Term
 
